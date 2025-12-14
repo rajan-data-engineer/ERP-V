@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.auth_dependency import get_current_user
+from app.dependencies.auth_dependency import get_current_user
 from app.models.accounting import JournalEntry, JournalLine, AuditLog
 
 router = APIRouter(prefix="/ledger", tags=["Ledger"])

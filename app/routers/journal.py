@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 
 from app.database import get_session
 from app.models.accounting import JournalEntry, JournalLine
-from app.auth_dependency import get_current_user
+from app.dependencies.auth_dependency import get_current_user
 from app.services.accounting_engine import (
     generate_journal_id,
     validate_balanced,
