@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import auth_routes, admin_routes
 from app.db.session import engine
 from sqlmodel import SQLModel
+from app.models import accounting
+from app.routers import journal, ledger
 
 app = FastAPI(title="ERP-V Backend")
 
@@ -20,7 +22,8 @@ def on_startup():
 
 app.include_router(auth_routes.router)
 app.include_router(admin_routes.router)
-
+app.include_router(journal.router)
+app.include_router(ledger.router)
 
 @app.get("/")
 def root():
