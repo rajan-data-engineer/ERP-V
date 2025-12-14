@@ -1,31 +1,24 @@
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
-
-from app.database import get_session
-from app.dependencies.auth_dependency import get_current_user
-from app.models.accounting import JournalEntry, JournalLine, AuditLog
+from app.db.session import get_session
+from app.models.ledger import Ledger
+from app.dependencies.auth_dependency import require_role
 
 router = APIRouter(prefix="/ledger", tags=["Ledger"])
 
+@router.get("/")
+def get_ledger(
+    account_id: int = None,
+    journal_id: str = None,
+    session: Session = Depends(get_session),
+    user=Depends(require_role("admin", "accountant", "viewer"))
+):
+    query = select(Ledger)
 
-@router.get("/journals")
-def list_journals(user=Depends(get_current_user), session: Session = Depends(get_session)):
-    return session.exec(select(JournalEntry)).all()
+    if account_id:
+        query = query.where(Ledger.account_id == account_id)
+    if journal_id:
+        query = query.where(Ledger.journal_id == journal_id)
 
-
-@router.get("/journal/{id}")
-def journal_detail(id: int, user=Depends(get_current_user), session: Session = Depends(get_session)):
-    entry = session.get(JournalEntry, id)
-    if not entry:
-        return {"error": "Not found"}
-
-    lines = session.exec(
-        select(JournalLine).where(JournalLine.journal_entry_id == id)
-    ).all()
-
-    return {"entry": entry, "lines": lines}
-
-
-@router.get("/audit")
-def audit_logs(user=Depends(get_current_user), session: Session = Depends(get_session)):
-    return session.exec(select(AuditLog)).all()
+    result = session.exec(query.order_by(Ledger.effective_date)).all()
+    return result
