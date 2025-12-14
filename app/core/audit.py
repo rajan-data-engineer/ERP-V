@@ -1,31 +1,28 @@
-from starlette.middleware.base import BaseHTTPMiddleware
+from datetime import datetime
+from sqlmodel import Session
+from app.core.config import get_settings
 from app.db.session import get_session
 from app.models.audit_log import AuditLog
-from app.dependencies.auth_dependency import decode_token
-from sqlmodel import Session
-from datetime import datetime
 
-class AuditMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        session_gen = get_session()
-        session: Session = next(session_gen)
+settings = get_settings()
 
-        user_id = None
-        token = request.headers.get("Authorization", "").replace("Bearer ", "")
 
-        payload = decode_token(token) if token else None
-        if payload:
-            user_id = payload.get("sub")
+def log_event(action: str, user_id: int, details: str, session: Session | None = None):
 
-        response = await call_next(request)
+    close_session = False
+    if session is None:
+        session = get_session()
+        close_session = True
 
-        log = AuditLog(
-            user_id=user_id,
-            action=f"{request.method} {request.url.path}",
-            details=response.status_code,
-            timestamp=datetime.utcnow()
-        )
-        session.add(log)
-        session.commit()
+    entry = AuditLog(
+        timestamp=datetime.utcnow(),
+        action=action,
+        user_id=user_id,
+        details=details
+    )
 
-        return response
+    session.add(entry)
+    session.commit()
+
+    if close_session:
+        session.close()

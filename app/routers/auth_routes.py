@@ -3,50 +3,53 @@ from sqlmodel import Session, select
 
 from app.db.session import get_session
 from app.models.user import User
-from app.core.security import hash_password, verify_password, create_access_token
+from app.core.security import create_access_token
+from app.core.config import get_settings
+from passlib.context import CryptContext
 
+settings = get_settings()
+pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/register")
 def register(
     username: str = Form(...),
     password: str = Form(...),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session)
 ):
-    existing = session.exec(select(User).where(User.username == username)).first()
-    if existing:
-        raise HTTPException(400, "Username already exists")
+    exists = session.exec(select(User).where(User.username == username)).first()
+    if exists:
+        raise HTTPException(400, "User already exists")
 
     user = User(
         username=username,
-        hashed_password=hash_password(password),
-        role="viewer",     # default role
-        is_active=False    # requires admin approval
+        password_hash=pwd.hash(password),
+        role="viewer",
+        is_active=False
     )
 
     session.add(user)
     session.commit()
     session.refresh(user)
 
-    return {"message": "User registered successfully. Awaiting admin approval."}
+    return {"message": "User registered. Await admin approval."}
 
 
 @router.post("/login")
 def login(
     username: str = Form(...),
     password: str = Form(...),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session)
 ):
-
     user = session.exec(select(User).where(User.username == username)).first()
 
-    if not user or not verify_password(password, user.hashed_password):
-        raise HTTPException(401, "Invalid credentials")
+    if not user or not pwd.verify(password, user.password_hash):
+        raise HTTPException(400, "Invalid username or password")
 
     if not user.is_active:
-        raise HTTPException(403, "Account awaiting admin approval.")
+        raise HTTPException(403, "Awaiting admin approval")
 
     token = create_access_token({"sub": user.id, "role": user.role})
     return {"access_token": token, "token_type": "bearer"}
