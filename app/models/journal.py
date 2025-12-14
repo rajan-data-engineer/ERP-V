@@ -1,34 +1,27 @@
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
+from typing import Optional, List
 from datetime import datetime
-from typing import Optional
+
 
 class JournalEntry(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
 
-    journal_id: str = Field(index=True)        # Unique string
-    memo: Optional[str] = None
-    description: Optional[str] = None
-
-    fiscal_period_id: Optional[int] = Field(default=None, foreign_key="fiscalperiod.id")
-
-    entry_date: datetime = Field(default_factory=datetime.utcnow)
+    description: str
+    created_by: int
     effective_date: datetime = Field(default_factory=datetime.utcnow)
 
-    created_by: Optional[int] = None
-    approved_by: Optional[int] = None
-    posted_by: Optional[int] = None
+    status: str = Field(default="draft")  # draft, posted, cancelled
 
-    status: str = Field(default="draft")  
-    # draft, submitted, approved, posted, cancelled
+    lines: List["JournalLine"] = Relationship(back_populates="journal")
 
 
 class JournalLine(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
 
-    journal_entry_id: int = Field(foreign_key="journalentry.id")
+    journal_id: int = Field(foreign_key="journalentry.id")
     account_id: int = Field(foreign_key="account.id")
 
     debit: float = 0.0
     credit: float = 0.0
 
-    line_memo: Optional[str] = None
+    journal: Optional[JournalEntry] = Relationship(back_populates="lines")

@@ -1,4 +1,5 @@
 # app/core/config.py
+
 import os
 from functools import lru_cache
 
@@ -6,34 +7,34 @@ from functools import lru_cache
 class Settings:
     PROJECT_NAME: str = "ERP-V"
 
-    # ------------------------------
-    # DATABASE CONFIG
-    # ------------------------------
+    # -------------------------
+    # DATABASE
+    # -------------------------
     DATABASE_URL: str = os.getenv("DATABASE_URL")
 
-    # ------------------------------
-    # SECURITY / TOKENS
-    # ------------------------------
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret")
+    # -------------------------
+    # SECURITY
+    # -------------------------
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "change-this-in-prod")
 
-    # ------------------------------
-    # EMAIL NOTIFICATIONS (OPTIONAL)
-    # ------------------------------
+    # -------------------------
+    # EMAIL (REAL SMTP)
+    # -------------------------
     GMAIL_USER: str = os.getenv("GMAIL_USER", "")
     GMAIL_APP_PASSWORD: str = os.getenv("GMAIL_APP_PASSWORD", "")
 
-    # ------------------------------
-    # AI MODE (DISABLED FOR FREE TIER)
-    # ------------------------------
-    AI_ENABLED: bool = False  # Keep disabled to avoid OpenAI billing
+    # -------------------------
+    # AI (DISABLED FOR NOW)
+    # -------------------------
+    AI_ENABLED: bool = False
 
-    # ------------------------------
+    # -------------------------
     # SYSTEM META
-    # ------------------------------
+    # -------------------------
     VERSION: str = "1.0.0"
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "production")  # for Render
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "production")
 
 
 @lru_cache()
-def get_settings() -> Settings:
+def get_settings():
     return Settings()

@@ -1,14 +1,12 @@
+# app/routers/auth_routes.py
+
 from fastapi import APIRouter, Depends, HTTPException, Form
 from sqlmodel import Session, select
 
 from app.db.session import get_session
 from app.models.user import User
-from app.core.security import create_access_token
-from app.core.config import get_settings
-from passlib.context import CryptContext
-
-settings = get_settings()
-pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from app.core.security import hash_password, verify_password, create_access_token
+from app.services.email_service_wrapper import EmailNotifications
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -17,24 +15,27 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 def register(
     username: str = Form(...),
     password: str = Form(...),
+    email: str = Form(""),
     session: Session = Depends(get_session)
 ):
-    exists = session.exec(select(User).where(User.username == username)).first()
-    if exists:
-        raise HTTPException(400, "User already exists")
+    existing = session.exec(select(User).where(User.username == username)).first()
+    if existing:
+        raise HTTPException(400, "Username already exists")
 
     user = User(
         username=username,
-        password_hash=pwd.hash(password),
+        hashed_password=hash_password(password),
+        email=email,
         role="viewer",
         is_active=False
     )
-
     session.add(user)
     session.commit()
     session.refresh(user)
 
-    return {"message": "User registered. Await admin approval."}
+    EmailNotifications.notify_admin_new_user(username)
+
+    return {"message": "Registration received. Await admin approval."}
 
 
 @router.post("/login")
@@ -45,11 +46,13 @@ def login(
 ):
     user = session.exec(select(User).where(User.username == username)).first()
 
-    if not user or not pwd.verify(password, user.password_hash):
-        raise HTTPException(400, "Invalid username or password")
+    if not user or not verify_password(password, user.hashed_password):
+        EmailNotifications.notify_admin_failed_login(username)
+        raise HTTPException(401, "Invalid credentials")
 
     if not user.is_active:
-        raise HTTPException(403, "Awaiting admin approval")
+        raise HTTPException(403, "Account awaiting admin approval")
 
     token = create_access_token({"sub": user.id, "role": user.role})
+
     return {"access_token": token, "token_type": "bearer"}

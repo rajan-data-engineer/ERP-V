@@ -1,12 +1,14 @@
 from sqlmodel import SQLModel, Field
 from typing import Optional
-from datetime import datetime
+
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+
     username: str = Field(index=True, unique=True)
-    email: str = Field(index=True, unique=True)
     hashed_password: str
+
     role: str = Field(default="viewer")  # viewer, accountant, admin
-    is_active: bool = Field(default=False)  # NEW users must be approved
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_active: bool = Field(default=False)  # Requires admin approval
+
+    email: Optional[str] = None

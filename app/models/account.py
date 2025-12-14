@@ -1,13 +1,17 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
+from sqlmodel import SQLModel, Field, Relationship
+from typing import Optional, List
+
 
 class Account(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
 
-    account_number: str = Field(index=True)
-    account_name: str
-
-    fsli_code: Optional[str] = None      # Financial Statement Line Item
-    category: str                        # Asset, Liability, Equity, Revenue, Expense
-
+    code: str = Field(index=True, unique=True)
+    name: str
+    type: str  # asset, liability, equity, income, expense
     is_active: bool = Field(default=True)
+
+    parent_id: Optional[int] = Field(default=None, foreign_key="account.id")
+
+    # Relationships
+    children: List["Account"] = Relationship(back_populates="parent")
+    parent: Optional["Account"] = Relationship(back_populates="children")
