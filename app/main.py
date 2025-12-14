@@ -6,6 +6,7 @@ from app.db.session import engine
 from sqlmodel import SQLModel
 from app.models import accounting
 from app.routers import journal, ledger
+from app.database import init_db
 
 app = FastAPI(title="ERP-V Backend")
 
@@ -15,10 +16,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 @app.on_event("startup")
 def on_startup():
-    SQLModel.metadata.create_all(engine)
+    init_db()
+
 
 app.include_router(auth_routes.router)
 app.include_router(admin_routes.router)

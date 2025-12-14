@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
-from app.db import get_session
+from app.database import get_session
 from app.models.accounting import JournalEntry, JournalLine
 from app.auth_dependency import get_current_user
 from app.services.accounting_engine import (
