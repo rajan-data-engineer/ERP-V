@@ -6,3 +6,4 @@ python-dotenv
 python-jose
 passlib[bcrypt]
 python-multipart
+PyJWT==2.8.0
