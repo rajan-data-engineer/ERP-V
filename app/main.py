@@ -21,7 +21,7 @@ from app.routers.fiscal_routes import router as fiscal_router
 from app.routers.account_hierarchy_routes import router as account_tree_router
 from app.routers.audit_log_routes import router as audit_router
 from app.routers.export_routes import router as export_router
-
+from app.routers.dashboard import router as dashboard_router
 
 settings = get_settings()
 
@@ -66,6 +66,7 @@ def create_app() -> FastAPI:
     app.include_router(account_tree_router)
     app.include_router(audit_router)
     app.include_router(export_router)
+    app.include_router(dashboard_router)
 
     # ----------------------------------------------------
     # STARTUP — CREATE TABLES
