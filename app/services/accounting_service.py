@@ -227,4 +227,31 @@ class AccountingService:
             "total_expense": total_expense,
             "net_profit": total_income - total_expense
         }
- 
+
+from app.services.account_hierarchy_service import AccountHierarchyService
+
+
+class AccountingService:
+    ...
+    
+    @staticmethod
+    def trial_balance_tree(session: Session):
+        return AccountHierarchyService.build_tree_with_balances(session)
+
+    @staticmethod
+    def balance_sheet_tree(session: Session):
+        tree = AccountHierarchyService.build_tree_with_balances(session)
+
+        return {
+            "tree": tree,  # full rollup by parent-child
+            "raw": AccountingService.balance_sheet(session)
+        }
+
+    @staticmethod
+    def profit_loss_tree(session: Session):
+        tree = AccountHierarchyService.build_tree_with_balances(session)
+
+        return {
+            "tree": tree,
+            "raw": AccountingService.profit_loss(session)
+        }

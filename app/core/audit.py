@@ -1,12 +1,3 @@
-# app/core/audit.py
-
-from datetime import datetime
-from sqlmodel import Session
-
-from app.db.session import get_session
-from app.models.audit_log import AuditLog
-
-
 def log_event(action: str, user_id: int, details: str, session: Session | None = None):
 
     close_session = False
@@ -26,3 +17,5 @@ def log_event(action: str, user_id: int, details: str, session: Session | None =
 
     if close_session:
         session.close()
+
+    return entry.id

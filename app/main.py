@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlmodel import SQLModel
 
 from app.core.config import get_settings
@@ -17,27 +18,40 @@ from app.routers.customers import router as customers_router
 from app.routers.sales_orders import router as sales_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.fiscal_routes import router as fiscal_router
+from app.routers.account_hierarchy_routes import router as account_tree_router
+from app.routers.audit_log_routes import router as audit_router
+from app.routers.export_routes import router as export_router
+
 
 settings = get_settings()
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
+    app = FastAPI(
+        title=settings.PROJECT_NAME,
+        version=getattr(settings, "VERSION", "1.0.0")
+    )
 
-    # ---------------------------------------
-    # CORS CONFIG
-    # ---------------------------------------
+    # ----------------------------------------------------
+    # STATIC FILES (Excel Exports)
+    # ----------------------------------------------------
+    # MUST be mounted BEFORE routers
+    app.mount("/exports", StaticFiles(directory="app/exports"), name="exports")
+
+    # ----------------------------------------------------
+    # CORS (Allow All for Now)
+    # ----------------------------------------------------
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # You can restrict later for security
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
-    # ---------------------------------------
+    # ----------------------------------------------------
     # ROUTERS
-    # ---------------------------------------
+    # ----------------------------------------------------
     app.include_router(auth_router)
     app.include_router(admin_router)
     app.include_router(account_router)
@@ -49,26 +63,28 @@ def create_app() -> FastAPI:
     app.include_router(sales_router)
     app.include_router(dashboard_router)
     app.include_router(fiscal_router)
+    app.include_router(account_tree_router)
+    app.include_router(audit_router)
+    app.include_router(export_router)
 
-
-    # ---------------------------------------
-    # STARTUP EVENT: AUTO-CREATE TABLES
-    # ---------------------------------------
+    # ----------------------------------------------------
+    # STARTUP — CREATE TABLES
+    # ----------------------------------------------------
     @app.on_event("startup")
     def on_startup():
         print("Initializing ERP-V database...")
         SQLModel.metadata.create_all(engine)
         print("Database initialized successfully.")
 
-    # ---------------------------------------
+    # ----------------------------------------------------
     # ROOT ENDPOINT
-    # ---------------------------------------
+    # ----------------------------------------------------
     @app.get("/")
     def root():
         return {
             "status": "ok",
             "message": f"{settings.PROJECT_NAME} Backend Running",
-            "version": settings.VERSION
+            "version": getattr(settings, "VERSION", "1.0.0")
         }
 
     return app

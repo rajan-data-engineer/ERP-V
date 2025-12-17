@@ -13,8 +13,11 @@ def post_journal(journal_id: int, user_id: int, session: Session):
     journal = session.get(JournalEntry, journal_id)
     if not journal:
         raise ValueError("Journal entry not found.")
-# Validate fiscal period
-FiscalService.validate_posting_date(journal.effective_date, session)
+
+    # -------------------------------------
+    # FISCAL PERIOD VALIDATION  (FIXED)
+    # -------------------------------------
+    FiscalService.validate_posting_date(journal.effective_date, session)
 
     if journal.status == "posted":
         raise ValueError("Journal entry already posted.")
@@ -45,10 +48,12 @@ FiscalService.validate_posting_date(journal.effective_date, session)
         )
         session.add(ledger)
 
+    # Update journal status
     journal.status = "posted"
     session.add(journal)
     session.commit()
 
+    # Audit log
     log_event("journal_posted", user_id, f"Journal {journal_id} posted", session)
 
     return True
