@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 from app.models.journal import JournalEntry, JournalLine
 from app.models.ledger import LedgerEntry
 from app.core.audit import log_event
+from app.services.fiscal_service import FiscalService
 
 
 def post_journal(journal_id: int, user_id: int, session: Session):
@@ -12,6 +13,8 @@ def post_journal(journal_id: int, user_id: int, session: Session):
     journal = session.get(JournalEntry, journal_id)
     if not journal:
         raise ValueError("Journal entry not found.")
+# Validate fiscal period
+FiscalService.validate_posting_date(journal.effective_date, session)
 
     if journal.status == "posted":
         raise ValueError("Journal entry already posted.")

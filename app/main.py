@@ -16,6 +16,7 @@ from app.routers.inventory import router as inventory_router
 from app.routers.customers import router as customers_router
 from app.routers.sales_orders import router as sales_router
 from app.routers.dashboard import router as dashboard_router
+from app.routers.fiscal_routes import router as fiscal_router
 
 settings = get_settings()
 
@@ -47,6 +48,8 @@ def create_app() -> FastAPI:
     app.include_router(customers_router)
     app.include_router(sales_router)
     app.include_router(dashboard_router)
+    app.include_router(fiscal_router)
+
 
     # ---------------------------------------
     # STARTUP EVENT: AUTO-CREATE TABLES
