@@ -5,6 +5,8 @@ from app.core.config import get_settings
 from app.db.session import engine 
 from sqlmodel import Session, select 
 from app.models.user import User
+from app.core.security import get_password_hash
+
 # Routers 
 from app.routers.auth_routes import router as auth_router 
 from app.routers.admin_routes import router as admin_router 
@@ -21,6 +23,7 @@ from app.routers.account_hierarchy_routes import router as account_tree_router
 from app.routers.audit_log_routes import router as audit_router 
 from app.routers.export_routes import router as export_router 
 from app.routers.dashboard import router as dashboard_router
+
 
 settings = get_settings()
 
@@ -68,33 +71,41 @@ def create_app() -> FastAPI:
     # STARTUP — CREATE TABLES + BOOTSTRAP ADMIN
     # ----------------------------------------------------
     @app.on_event("startup")
-    def on_startup():
-        print("Initializing ERP-V database...")
-        SQLModel.metadata.create_all(engine)
-        print("Database initialized successfully.")
+def on_startup():
+    print("Initializing ERP-V database...")
+    SQLModel.metadata.create_all(engine)
 
-        # Bootstrap admin (runs only once)
-        with Session(engine) as session:
-            admin_exists = session.exec(
-                select(User).where(User.role == "admin")
-            ).first()
+    with Session(engine) as session:
+        # 1. Check if user exists
+        user = session.exec(
+            select(User).where(User.username == "RajanShelke")
+        ).first()
 
-            if admin_exists:
-                print("Admin already exists. Skipping bootstrap.")
-                return
+        if not user:
+            print("Creating bootstrap admin user: RajanShelke")
 
-            user = session.exec(
-                select(User).where(User.username == "RajanShelke")
-            ).first()
+            user = User(
+                username="RajanShelke",
+                email="rajanbshelke@gmail.com",
+                hashed_password=get_password_hash("Admin@123"),
+                role="admin",
+                is_active=True,
+            )
+            session.add(user)
+            session.commit()
+            print("✅ Bootstrap admin user CREATED")
 
-            if user:
+        else:
+            # 2. Ensure admin + active
+            if user.role != "admin" or not user.is_active:
                 user.role = "admin"
                 user.is_active = True
                 session.add(user)
                 session.commit()
-                print("✅ Bootstrap admin user: RajanShelke")
-            else:
-                print("⚠️ Bootstrap skipped: user 'RajanShelke' not found")
+                print("✅ Bootstrap admin user UPDATED")
+
+        print("Admin bootstrap complete.")
+
 
     # ----------------------------------------------------
     # ROOT ENDPOINT
