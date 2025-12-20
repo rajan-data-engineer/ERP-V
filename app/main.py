@@ -1,34 +1,3 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from sqlmodel import SQLModel
-
-from app.core.config import get_settings
-from app.db.session import engine
-from sqlmodel import Session, select
-from app.models.user import User
-
-
-# Routers
-from app.routers.auth_routes import router as auth_router
-from app.routers.admin_routes import router as admin_router
-from app.routers.account_routes import router as account_router
-from app.routers.journal_routes import router as journal_router
-from app.routers.ledger_routes import router as ledger_router
-from app.routers.products import router as products_router
-from app.routers.inventory import router as inventory_router
-from app.routers.customers import router as customers_router
-from app.routers.sales_orders import router as sales_router
-from app.routers.dashboard import router as dashboard_router
-from app.routers.fiscal_routes import router as fiscal_router
-from app.routers.account_hierarchy_routes import router as account_tree_router
-from app.routers.audit_log_routes import router as audit_router
-from app.routers.export_routes import router as export_router
-from app.routers.dashboard import router as dashboard_router
-
-settings = get_settings()
-
-
 def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.PROJECT_NAME,
@@ -38,7 +7,6 @@ def create_app() -> FastAPI:
     # ----------------------------------------------------
     # STATIC FILES (Excel Exports)
     # ----------------------------------------------------
-    # MUST be mounted BEFORE routers
     app.mount("/exports", StaticFiles(directory="app/exports"), name="exports")
 
     # ----------------------------------------------------
@@ -69,41 +37,38 @@ def create_app() -> FastAPI:
     app.include_router(account_tree_router)
     app.include_router(audit_router)
     app.include_router(export_router)
-    app.include_router(dashboard_router)
 
     # ----------------------------------------------------
-    # STARTUP — CREATE TABLES
+    # STARTUP — CREATE TABLES + BOOTSTRAP ADMIN
     # ----------------------------------------------------
     @app.on_event("startup")
-def on_startup():
-    print("Initializing ERP-V database...")
-    SQLModel.metadata.create_all(engine)
-    print("Database initialized successfully.")
+    def on_startup():
+        print("Initializing ERP-V database...")
+        SQLModel.metadata.create_all(engine)
+        print("Database initialized successfully.")
 
-    # ----------------------------------------------------
-    # BOOTSTRAP FIRST ADMIN (RUNS ONLY IF NO ADMIN EXISTS)
-    # ----------------------------------------------------
-    with Session(engine) as session:
-        admin_exists = session.exec(
-            select(User).where(User.role == "admin")
-        ).first()
+        # Bootstrap admin (runs only once)
+        with Session(engine) as session:
+            admin_exists = session.exec(
+                select(User).where(User.role == "admin")
+            ).first()
 
-        if admin_exists:
-            print("Admin already exists. Skipping bootstrap.")
-            return
+            if admin_exists:
+                print("Admin already exists. Skipping bootstrap.")
+                return
 
-        user = session.exec(
-            select(User).where(User.username == "RajanShelke")
-        ).first()
+            user = session.exec(
+                select(User).where(User.username == "RajanShelke")
+            ).first()
 
-        if user:
-            user.role = "admin"
-            user.is_active = True
-            session.add(user)
-            session.commit()
-            print("✅ Bootstrap admin user: RajanShelke")
-        else:
-            print("⚠️ Bootstrap skipped: user 'RajanShelke' not found")
+            if user:
+                user.role = "admin"
+                user.is_active = True
+                session.add(user)
+                session.commit()
+                print("✅ Bootstrap admin user: RajanShelke")
+            else:
+                print("⚠️ Bootstrap skipped: user 'RajanShelke' not found")
 
     # ----------------------------------------------------
     # ROOT ENDPOINT
