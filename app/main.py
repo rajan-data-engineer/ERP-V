@@ -72,7 +72,7 @@ def create_app() -> FastAPI:
     # STARTUP — CREATE TABLES + BOOTSTRAP ADMIN
     # ----------------------------------------------------
     @app.on_event("startup")
-def on_startup():
+    def on_startup():
     print("Initializing ERP-V database...")
     SQLModel.metadata.create_all(engine)
 
