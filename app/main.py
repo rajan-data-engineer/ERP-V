@@ -7,7 +7,8 @@ from sqlmodel import SQLModel, Session, select
 from app.core.config import get_settings
 from app.db.session import engine
 from app.models.user import User
-from app.core.security import get_password_hash
+from app.core.security import hash_password
+
 
 # Routers
 from app.routers.auth_routes import router as auth_router
@@ -86,7 +87,7 @@ def create_app() -> FastAPI:
                 user = User(
                     username="RajanShelke",
                     email="rajanbshelke@gmail.com",
-                    hashed_password=get_password_hash("Admin@123"),
+                    hashed_password=hash_password("Admin@123"),
                     role="admin",
                     is_active=True,
                 )
