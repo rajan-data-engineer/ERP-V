@@ -5,6 +5,9 @@ from sqlmodel import SQLModel
 
 from app.core.config import get_settings
 from app.db.session import engine
+from sqlmodel import Session, select
+from app.models.user import User
+
 
 # Routers
 from app.routers.auth_routes import router as auth_router
@@ -72,10 +75,35 @@ def create_app() -> FastAPI:
     # STARTUP — CREATE TABLES
     # ----------------------------------------------------
     @app.on_event("startup")
-    def on_startup():
-        print("Initializing ERP-V database...")
-        SQLModel.metadata.create_all(engine)
-        print("Database initialized successfully.")
+def on_startup():
+    print("Initializing ERP-V database...")
+    SQLModel.metadata.create_all(engine)
+    print("Database initialized successfully.")
+
+    # ----------------------------------------------------
+    # BOOTSTRAP FIRST ADMIN (RUNS ONLY IF NO ADMIN EXISTS)
+    # ----------------------------------------------------
+    with Session(engine) as session:
+        admin_exists = session.exec(
+            select(User).where(User.role == "admin")
+        ).first()
+
+        if admin_exists:
+            print("Admin already exists. Skipping bootstrap.")
+            return
+
+        user = session.exec(
+            select(User).where(User.username == "RajanShelke")
+        ).first()
+
+        if user:
+            user.role = "admin"
+            user.is_active = True
+            session.add(user)
+            session.commit()
+            print("✅ Bootstrap admin user: RajanShelke")
+        else:
+            print("⚠️ Bootstrap skipped: user 'RajanShelke' not found")
 
     # ----------------------------------------------------
     # ROOT ENDPOINT
